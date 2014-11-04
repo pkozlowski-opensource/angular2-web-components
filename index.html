@@ -1,0 +1,70 @@
+<!doctype html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <template id="app">
+        <x-hello name="${nameModel}"></x-hello>
+    </template>
+    <script>
+
+        //a new custom element - this will go to a separate HTML import
+
+        var XHelloProto = Object.create(HTMLElement.prototype);
+
+        XHelloProto.setName = function (newName) {
+            this.innerHTML = '<h1>Hello, ' + newName + '!</h1>';
+        };
+
+        XHelloProto.createdCallback = function () {
+            var initialName = this.getAttribute('name');
+            if (initialName) {
+                this.setName(initialName);
+            }
+        };
+
+        document.registerElement('x-hello', {prototype: XHelloProto});
+
+    </script>
+</head>
+
+<body>
+</body>
+
+<script>
+
+    var scope = {
+        nameModel: 'Pawel'
+    };
+
+    //app's compilation / bootstrapping
+    var appTpl = document.querySelector('#app');
+    var clone = document.importNode(appTpl.content, true);
+
+    var xTagAttrs = clone.children[0].attributes;
+    for (var i = 0; i < xTagAttrs.length; i++) {
+        var attr = xTagAttrs.item(i);
+        var attrName = attr.name, attrVal = attr.value;
+        var propSetter = 'set' + attrName;
+
+        if (attrVal.substr(0, 2) === "${" && attrVal.substr(-1, 1) === '}') {
+            //remove the attribute - otherwise it would fire
+            //set initial value (?)
+            //observe with a callback being property setter
+            Object.observe(scope, function (changes) {
+                changes.forEach(function (change) {
+                    if (change.name === attrVal.substr(2, attrVal.length - 3)) {
+                        clone.children[0].setName(change.object[change.name]);
+                    }
+                });
+            });
+        }
+    }
+
+    document.querySelector('body').appendChild(clone);
+
+    setInterval(function () {
+        scope.nameModel = scope.nameModel + i++;
+    }, 1000);
+
+</script>
+</html>
